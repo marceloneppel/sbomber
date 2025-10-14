@@ -378,7 +378,7 @@ def prepare(
     # we could download all to ./ and later copy (mv?) to pkg_dir?
     pkg_dir.mkdir(exist_ok=True)
 
-    artifact_name_and_type = set()
+    artifacts_identifiers = set()
     done = []
 
     for artifact in meta.artifacts:
@@ -389,12 +389,16 @@ def prepare(
             continue
 
         name = f"{artifact.name}-{artifact.type.value}"
+        if artifact.channel is not None:
+            name += f"-{artifact.channel}"
+        if artifact.version is not None:
+            name += f"-{artifact.version}"
 
-        if name in artifact_name_and_type:
+        if name in artifacts_identifiers:
             logger.error(f"Artifact name {name} is not unique: skipping...")
             continue
 
-        artifact_name_and_type.add(name)
+        artifacts_identifiers.add(name)
 
         status = ProcessingStatus.success
         obj_name = None
@@ -698,7 +702,12 @@ def download(statefile: Path = DEFAULT_STATEFILE, reports_dir=DEFAULT_REPORTS_DI
                 )
 
             extension = "html" if client_name == "secscan" else "json"
-            filename = f"{artifact_name}-{artifact.type.value}.{client_name}.{extension}"
+            filename = artifact_name
+            if artifact.channel is not None:
+                filename += f"-{artifact.channel.replace('/', '_')}"
+            if artifact.version is not None:
+                filename += f"-{artifact.version}"
+            filename = f"{filename}-{artifact.type.value}.{client_name}.{extension}"
 
             done.append((f"({client_name}):{artifact.name}", filename))
 
